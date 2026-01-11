@@ -65,7 +65,12 @@ else:
 
 col1.metric("Latest Closing Price", f"${last_price:.2f}")
 col2.metric(f"Predicted Price ({horizon} Days)", f"${predicted_price:.2f}")
-col3.metric("Market Trend", trend)
+col3.metric(
+    "Market Trend",
+    trend,
+    f"{percent_change:.2f}%"
+)
+
 
 # ------------------ CHART ------------------
 st.subheader("📊 Historical Price Trend with Forecast")
@@ -120,4 +125,5 @@ st.warning(
     This application should **not be used for real financial trading decisions**.
     """
 )
+
 
