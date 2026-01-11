@@ -4,6 +4,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 from tensorflow.keras.models import load_model
 from sklearn.preprocessing import MinMaxScaler
+import os
+import glob
 
 # -------------------------------
 # Page config
@@ -31,11 +33,21 @@ horizon = st.sidebar.selectbox(
 # -------------------------------
 # Load data
 # -------------------------------
-df = pd.read_csv("TSLA.csv")
-df["Close"] = df["Close"].astype(float)
+try:
+    df = pd.read_csv("TSLA.csv")
+except FileNotFoundError:
+    st.error("❌ TSLA.csv not found! Make sure it is in the same folder as app.py")
+    st.stop()
+
+# Check if Close column exists and is numeric
+if "Close" not in df.columns:
+    st.error("❌ 'Close' column not found in TSLA.csv")
+    st.stop()
+
+df["Close"] = pd.to_numeric(df["Close"], errors='coerce')
+df = df.dropna(subset=["Close"])  # remove any invalid values
 
 prices = df["Close"].values.reshape(-1, 1)
-
 scaler = MinMaxScaler()
 scaled_prices = scaler.fit_transform(prices)
 
@@ -47,9 +59,15 @@ last_sequence = scaled_prices[-window_size:]
 last_sequence = last_sequence.reshape(1, window_size, 1)
 
 # -------------------------------
-# Load model
+# Automatically find model file
 # -------------------------------
-model_path = f"models/lstm_{horizon}day.h5"
+model_files = glob.glob(f"models/*{horizon}*day*.h5")
+if not model_files:
+    st.error(f"❌ No model file found for {horizon}-day horizon in 'models' folder")
+    st.stop()
+
+# Pick the first matching file
+model_path = model_files[0]
 model = load_model(model_path, compile=False)
 
 # -------------------------------
@@ -109,7 +127,6 @@ Users can compare model behavior and forecast horizons in real time.
 **Tech Stack:** Python, Streamlit, TensorFlow, Pandas, Matplotlib
 """)
 
-
 # ------------------ DISCLAIMER ------------------
 st.warning(
     """
@@ -119,6 +136,7 @@ st.warning(
     This application should **not be used for real financial trading decisions**.
     """
 )
+
 
 
 
