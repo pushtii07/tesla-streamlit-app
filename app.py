@@ -11,7 +11,7 @@ st.title("Tesla Stock Price Prediction 📈")
 horizon = st.sidebar.selectbox("Forecast horizon (days ahead)", [1, 5, 10])
 
 # Load data
-data = pd.read_csv("tesla.csv")
+data = pd.read_csv("TSLA.csv")
 data['Date'] = pd.to_datetime(data['Date'])
 prices = data['Close'].values.reshape(-1, 1)
 
