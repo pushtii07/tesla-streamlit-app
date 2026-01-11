@@ -22,7 +22,10 @@ last_seq = scaled[-60:]
 X_input = np.expand_dims(last_seq, axis=0)
 
 
-model = load_model(f"models/tesla_model_{horizon}day.h5")
+model = load_model(
+    f"models/tesla_model_{horizon}day.h5",
+    compile=False
+)
 pred = model.predict(X_input)
 pred_price = scaler.inverse_transform(pred)[0, 0]
 
@@ -36,3 +39,4 @@ ax.plot(future_dates, [prices[-1][0]] + [pred_price], label="Prediction", color=
 ax.legend()
 plt.xticks(rotation=45)
 st.pyplot(fig)
+
