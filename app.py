@@ -5,116 +5,110 @@ import matplotlib.pyplot as plt
 from tensorflow.keras.models import load_model
 from sklearn.preprocessing import MinMaxScaler
 
-# ------------------ PAGE CONFIG ------------------
-st.set_page_config(
-    page_title="Tesla Stock Price Forecasting System",
-    page_icon="📈",
-    layout="wide"
+# -------------------------------
+# Page config
+# -------------------------------
+st.set_page_config(page_title="Tesla Stock Prediction", layout="wide")
+
+st.title("📈 Tesla Stock Price Prediction")
+st.markdown("### Deep Learning based Stock Forecasting (RNN & LSTM)")
+
+# -------------------------------
+# Sidebar controls
+# -------------------------------
+st.sidebar.header("Model Settings")
+
+model_type = st.sidebar.selectbox(
+    "Select Model Architecture",
+    ["LSTM", "RNN"]
 )
-
-# ------------------ TITLE ------------------
-st.title("📈 Tesla Stock Price Forecasting System")
-st.markdown(
-    """
-    **An AI-powered system using LSTM deep learning models  
-    to forecast future Tesla stock closing prices.**
-    """
-)
-
-st.divider()
-
-# ------------------ SIDEBAR ------------------
-st.sidebar.header("⚙️ Forecast Settings")
 
 horizon = st.sidebar.selectbox(
-    "Select Forecast Horizon (Days Ahead)",
+    "Forecast Horizon (days ahead)",
     [1, 5, 10]
 )
 
-# ------------------ LOAD DATA ------------------
+# -------------------------------
+# Load data
+# -------------------------------
 df = pd.read_csv("TSLA.csv")
-df["Date"] = pd.to_datetime(df["Date"])
-close_prices = df["Close"].values.reshape(-1, 1)
+df["Close"] = df["Close"].astype(float)
 
-# ------------------ SCALING ------------------
+prices = df["Close"].values.reshape(-1, 1)
+
 scaler = MinMaxScaler()
-scaled_data = scaler.fit_transform(close_prices)
+scaled_prices = scaler.fit_transform(prices)
 
-last_60 = scaled_data[-60:].reshape(1, 60, 1)
+# -------------------------------
+# Prepare last window
+# -------------------------------
+window_size = 60
+last_sequence = scaled_prices[-window_size:]
+last_sequence = last_sequence.reshape(1, window_size, 1)
 
-# ------------------ LOAD MODEL ------------------
-model_path = f"models/tesla_model_{horizon}day.h5"
+# -------------------------------
+# Load model
+# -------------------------------
+model_path = f"models/{model_type.lower()}_{horizon}day.h5"
 model = load_model(model_path, compile=False)
 
-# ------------------ PREDICTION ------------------
-scaled_prediction = model.predict(last_60)
-predicted_price = scaler.inverse_transform(scaled_prediction)[0][0]
+# -------------------------------
+# Prediction
+# -------------------------------
+scaled_prediction = model.predict(last_sequence)
+prediction = scaler.inverse_transform(scaled_prediction)[0][0]
 
-# ------------------ METRICS ------------------
-col1, col2, col3 = st.columns(3)
+last_price = prices[-1][0]
 
-last_price = close_prices[-1][0]
-percent_change = ((predicted_price - last_price) / last_price) * 100
-
-if percent_change > 1:
+# -------------------------------
+# Market trend logic
+# -------------------------------
+if prediction > last_price * 1.01:
     trend = "📈 Bullish"
-elif percent_change < -1:
+elif prediction < last_price * 0.99:
     trend = "📉 Bearish"
 else:
-    trend = "⚖️ Neutral"
+    trend = "➖ Sideways"
 
-col1.metric("Latest Closing Price", f"${last_price:.2f}")
-col2.metric(f"Predicted Price ({horizon} Days)", f"${predicted_price:.2f}")
-col3.metric(
-    "Market Trend",
-    trend,
-    f"{percent_change:.2f}%"
+# -------------------------------
+# Display results
+# -------------------------------
+st.subheader(
+    f"Predicted Closing Price ({horizon}-day ahead): "
+    f"${prediction:.2f}"
 )
 
+st.markdown(f"### Market Trend: **{trend}**")
 
-# ------------------ CHART ------------------
-st.subheader("📊 Historical Price Trend with Forecast")
+# -------------------------------
+# Plot
+# -------------------------------
+st.subheader("Actual vs Prediction")
 
-fig, ax = plt.subplots(figsize=(10, 5))
-ax.plot(close_prices, label="Historical Closing Price")
+plt.figure(figsize=(10, 5))
+plt.plot(prices[-100:], label="Actual Price", linewidth=2)
+plt.axhline(prediction, color="red", linestyle="--", label="Predicted Price")
 
-ax.scatter(
-    len(close_prices),
-    predicted_price,
-    color="red",
-    s=100,
-    label=f"{horizon}-Day Forecast"
-)
+plt.title(f"{model_type} Model – {horizon}-Day Forecast")
+plt.xlabel("Time")
+plt.ylabel("Price ($)")
+plt.legend()
 
-ax.set_xlabel("Trading Days")
-ax.set_ylabel("Price (USD)")
-ax.legend()
+st.pyplot(plt)
 
-st.pyplot(fig)
+# -------------------------------
+# Project description
+# -------------------------------
+st.markdown("---")
+st.markdown("""
+### 📌 Project Overview
+This project uses **Recurrent Neural Networks (RNN)** and **Long Short-Term Memory (LSTM)**
+models to forecast Tesla stock prices.  
+Users can compare model behavior and forecast horizons in real time.
 
-# ------------------ INTERPRETATION ------------------
-st.subheader("🧠 Model Interpretation")
+**Tech Stack:** Python, Streamlit, TensorFlow, Pandas, Matplotlib
+""")
 
-st.markdown(
-    f"""
-    - The system predicts Tesla's **closing stock price {horizon} days ahead**.
-    - Prediction is based on **past 60 trading days** using an **LSTM neural network**.
-    - Current trend detected: **{trend}**.
-    - This forecast helps investors understand **short-term price direction**.
-    """
-)
-
-# ------------------ MODEL INFO ------------------
-with st.expander("📌 Model & Technology Details"):
-    st.markdown(
-        """
-        **Model Used:** Long Short-Term Memory (LSTM)  
-        **Why LSTM?** Effective for time-series and sequential data  
-        **Input Window:** Last 60 trading days  
-        **Output:** Single future closing price  
-        **Frameworks:** TensorFlow, Keras, Streamlit  
-        """
-    )
 
 # ------------------ DISCLAIMER ------------------
 st.warning(
@@ -125,5 +119,6 @@ st.warning(
     This application should **not be used for real financial trading decisions**.
     """
 )
+
 
 
