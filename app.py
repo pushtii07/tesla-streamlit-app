@@ -49,7 +49,7 @@ last_sequence = last_sequence.reshape(1, window_size, 1)
 # -------------------------------
 # Load model
 # -------------------------------
-model_path = f"models/{model_type.lower()}_{horizon}day.h5"
+model_path = f"models/lstm_{horizon}day.h5"
 model = load_model(model_path, compile=False)
 
 # -------------------------------
@@ -119,6 +119,7 @@ st.warning(
     This application should **not be used for real financial trading decisions**.
     """
 )
+
 
 
 
