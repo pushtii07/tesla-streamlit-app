@@ -54,8 +54,14 @@ predicted_price = scaler.inverse_transform(scaled_prediction)[0][0]
 col1, col2, col3 = st.columns(3)
 
 last_price = close_prices[-1][0]
-price_change = predicted_price - last_price
-trend = "📈 Bullish" if price_change > 0 else "📉 Bearish"
+percent_change = ((predicted_price - last_price) / last_price) * 100
+
+if percent_change > 1:
+    trend = "📈 Bullish"
+elif percent_change < -1:
+    trend = "📉 Bearish"
+else:
+    trend = "⚖️ Neutral"
 
 col1.metric("Latest Closing Price", f"${last_price:.2f}")
 col2.metric(f"Predicted Price ({horizon} Days)", f"${predicted_price:.2f}")
@@ -114,3 +120,4 @@ st.warning(
     This application should **not be used for real financial trading decisions**.
     """
 )
+
