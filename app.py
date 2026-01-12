@@ -38,7 +38,6 @@ p, span, label {
 </style>
 """, unsafe_allow_html=True)
 
-
 # ==================================================
 # LOAD DATA
 # ==================================================
@@ -53,7 +52,6 @@ def load_data():
 df = load_data()
 
 prices = df["Adj Close"].values.reshape(-1, 1)
-
 scaler = MinMaxScaler()
 scaled_prices = scaler.fit_transform(prices)
 
@@ -72,7 +70,7 @@ MODEL_PATHS = {
 # ==================================================
 # TOP NAVIGATION TABS (LIKE WEBSITE)
 # ==================================================
-tab1, tab2, tab3 = st.tabs(["🔮 Prediction", "📊 Project Overview", "ℹ️ About Project"])
+tab1, tab2 = st.tabs(["🔮 Prediction", "📊 Project Overview"])
 
 # ==================================================
 # TAB 1 — PREDICTION PAGE
@@ -87,9 +85,11 @@ with tab1:
     with col2:
         horizon = st.selectbox("Forecast Horizon (Days)", [1, 5, 10])
 
+    # Load correct model
     model_path = MODEL_PATHS[(model_type, horizon)]
     model = load_model(model_path, compile=False)
 
+    # Make prediction
     scaled_pred = model.predict(last_sequence)
 
     if scaled_pred.ndim == 2 and scaled_pred.shape[1] > 1:
@@ -100,38 +100,59 @@ with tab1:
     prediction = scaler.inverse_transform([[scaled_pred_value]])[0][0]
     last_price = prices[-1][0]
 
+    # Market trend logic
     if prediction > last_price * 1.01:
         trend = "📈 Bullish"
     elif prediction < last_price * 0.99:
         trend = "📉 Bearish"
     else:
         trend = "➖ Sideways"
-delta_value = prediction - last_price
-delta_color = "#22c55e" if delta_value >= 0 else "#ef4444"
 
-st.markdown(f"""
-<div style="
-    background: linear-gradient(135deg, #020617, #111827);
-    padding: 25px;
-    border-radius: 14px;
-    text-align: center;
-    margin-top: 20px;
-    box-shadow: 0 10px 25px rgba(0,0,0,0.6);
-">
-    <h3 style="color:#9ca3af; margin-bottom:10px;">
-        Predicted Price ({horizon}-Day Ahead)
-    </h3>
-    <h1 style="color:#f9fafb; font-size:52px; margin:0;">
-        ${prediction:,.2f}
-    </h1>
-    <p style="color:{delta_color}; font-size:18px; margin-top:8px;">
-        Δ {delta_value:,.2f} USD from last close
-    </p>
-</div>
-""", unsafe_allow_html=True)
+    # ----- Prediction Card -----
+    delta_value = prediction - last_price
+    delta_color = "#22c55e" if delta_value >= 0 else "#ef4444"
 
+    st.markdown(f"""
+    <div style="
+        background: linear-gradient(135deg, #020617, #111827);
+        padding: 25px;
+        border-radius: 14px;
+        text-align: center;
+        margin-top: 20px;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.6);
+    ">
+        <h3 style="color:#9ca3af; margin-bottom:10px;">
+            Predicted Price ({horizon}-Day Ahead)
+        </h3>
+        <h1 style="color:#f9fafb; font-size:52px; margin:0;">
+            ${prediction:,.2f}
+        </h1>
+        <p style="color:{delta_color}; font-size:18px; margin-top:8px;">
+            Δ {delta_value:,.2f} USD from last close
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
 
-    st.markdown(f"### Market Trend: **{trend}**")
+    # ----- Market Trend Card -----
+    trend_color = (
+        "#22c55e" if "Bullish" in trend
+        else "#ef4444" if "Bearish" in trend
+        else "#eab308"
+    )
+
+    st.markdown(f"""
+    <div style="
+        margin-top: 15px;
+        padding: 12px;
+        border-radius: 10px;
+        background-color: #020617;
+        text-align: center;
+    ">
+        <h3 style="color:{trend_color}; margin:0;">
+            Market Trend: {trend}
+        </h3>
+    </div>
+    """, unsafe_allow_html=True)
 
 # ==================================================
 # TAB 2 — PROJECT OVERVIEW + GRAPH
@@ -152,8 +173,8 @@ with tab2:
     - Interactive Streamlit dashboard
     """)
 
+    # Graph in middle column
     col1, col2, col3 = st.columns([1, 3, 1])
-
     with col2:
         fig, ax = plt.subplots(figsize=(8, 4))
         ax.plot(df.index[-120:], prices[-120:], label="Actual Price", linewidth=2)
@@ -165,34 +186,6 @@ with tab2:
         st.pyplot(fig)
 
 # ==================================================
-# TAB 3 — ABOUT PROJECT
-# ==================================================
-with tab3:
-    st.title("ℹ️ About This Project")
-
-    st.markdown("""
-    ### Domain
-    **Financial Services / Stock Market Analysis**
-
-    ### Technologies Used
-    - Python
-    - TensorFlow / Keras
-    - Pandas, NumPy
-    - Scikit-learn
-    - Streamlit
-
-    ### Business Use Cases
-    - Stock trend analysis
-    - Investment planning
-    - Financial forecasting
-    - Educational deep learning applications
-
-    ### Disclaimer
-    ⚠️ This project is created **only for academic and learning purposes**.
-    It must **not** be used for real-world trading decisions.
-    """)
-
-# ==================================================
 # FOOTER
 # ==================================================
 st.markdown("---")
@@ -200,8 +193,6 @@ st.markdown(
     "<center>🚀 Tesla Stock Prediction Project | Deep Learning & Streamlit</center>",
     unsafe_allow_html=True
 )
-
-
 
 
 
