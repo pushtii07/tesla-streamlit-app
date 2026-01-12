@@ -19,24 +19,25 @@ st.set_page_config(
 # ==================================================
 st.markdown("""
 <style>
-body {
-    background-color: brown;
-    color: white;
-}
 [data-testid="stAppViewContainer"] {
-    background-color: #0e1117;
+    background: linear-gradient(135deg, #0f172a, #020617);
+    color: #e5e7eb;
 }
 [data-testid="stHeader"] {
-    background-color: #0e1117;
+    background-color: #020617;
 }
 [data-testid="stSidebar"] {
-    background-color: #111827;
+    background-color: #020617;
 }
-h1, h2, h3, h4, h5, h6, p, span, label {
-    color: white !important;
+h1, h2, h3, h4 {
+    color: #f9fafb !important;
+}
+p, span, label {
+    color: #d1d5db !important;
 }
 </style>
 """, unsafe_allow_html=True)
+
 
 # ==================================================
 # LOAD DATA
@@ -181,6 +182,7 @@ st.markdown(
     "<center>🚀 Tesla Stock Prediction Project | Deep Learning & Streamlit</center>",
     unsafe_allow_html=True
 )
+
 
 
 
