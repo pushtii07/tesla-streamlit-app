@@ -6,6 +6,13 @@ import os
 from tensorflow.keras.models import load_model
 from sklearn.preprocessing import MinMaxScaler
 
+import gdown
+url = "https://drive.google.com/uc?id=YOUR_FILE_ID"
+output = "models/tesla_model_1day_lstm.h5"
+gdown.download(url, output, quiet=False)
+model_1day = load_model(output)
+
+
 # ----------------- Page Config -----------------
 st.set_page_config(
     page_title="Tesla Stock Prediction",
@@ -135,6 +142,7 @@ if uploaded_file:
 
 else:
     st.info("Please upload your TSLA CSV file to continue.")
+
 
 
 
