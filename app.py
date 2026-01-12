@@ -6,16 +6,16 @@ from sklearn.preprocessing import MinMaxScaler
 import os
 
 # Load models
-model_1day = load_model("models/tesla-model_1day.h5")
-model_5day = load_model("models/tesla-model_5day.h5")
-model_10day = load_model("models/tesla-model_10day.h5")
+model_1day = load_model("models/tesla_model_1day_lstm.h5")
+model_5day = load_model("models/tesla_model_5day_lstm.h5")
+model_10day = load_model("models/tesla_model_10day_lstm.h5")
 
-# Tabs
+# Create tabs
 tab1, tab2, tab3 = st.tabs(["Prediction", "Models Info", "Technologies Used"])
 
+# ---------------- Tab 1: Prediction Window ----------------
 with tab1:
     st.title("Price Prediction Dashboard")
-
     st.markdown("Select prediction horizon and enter features to see the predicted value.")
 
     # Horizon selection
@@ -38,12 +38,12 @@ with tab1:
     else:
         predicted_value = model_10day.predict(scaled_input)[0][0]
 
-    # Display predicted value window
+    # Display predicted value
     st.subheader(f"{horizon} Prediction")
     st.markdown(f"**Predicted Value:** {predicted_value:.2f}")
     st.markdown("*Disclaimer: This prediction is based on historical data and may not reflect real future prices.*")
 
-    # Small graph
+    # Small graph showing all horizons
     st.subheader("Prediction Visualization")
     horizons = ["1-Day", "5-Day", "10-Day"]
     predictions = [
@@ -58,6 +58,7 @@ with tab1:
     ax.set_title("Prediction Trend")
     st.pyplot(fig)
 
+# ---------------- Tab 2: Models Info ----------------
 with tab2:
     st.title("Models Info")
     st.markdown("""
@@ -67,15 +68,17 @@ with tab2:
 
     **Input Features:** feature1, feature2, feature3  
     **Output:** Predicted price  
-    **Training:** Supervised learning on historical data
+    **Training:** LSTM on historical Tesla stock / property data
     """)
 
+# ---------------- Tab 3: Technologies Used ----------------
 with tab3:
-    st.title("Technologies Used")
+    st.title("Technologies & Concepts Used")
     st.markdown("""
     - **Libraries:** Python, Streamlit, Pandas, NumPy, Scikit-learn, TensorFlow/Keras, Matplotlib, Seaborn  
-    - **Concepts:** Data preprocessing, scaling, regression/LSTM models, visualization, deployment with Streamlit
+    - **Concepts:** Data preprocessing, scaling, LSTM models, visualization, deployment with Streamlit
     """)
+
 
 
 
