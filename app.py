@@ -2,7 +2,6 @@ import streamlit as st
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.preprocessing import MinMaxScaler
-import os
 
 # ---------------- Safe model loading ----------------
 def load_model_safe(path):
@@ -13,6 +12,7 @@ def load_model_safe(path):
         print(f"Could not load {path}: {e}")
         return None
 
+# Use your actual filenames
 model_1day = load_model_safe("models/tesla_model_1day_lstm.h5")
 model_5day = load_model_safe("models/tesla_model_5day_lstm.h5")
 model_10day = load_model_safe("models/tesla_model_10day_lstm.h5")
@@ -37,17 +37,23 @@ with tab1:
     scaler = MinMaxScaler()
     scaled_input = scaler.fit_transform(user_input)
 
-    # Prediction based on horizon (with safe fallback)
-    if model_1day: pred_1day = model_1day.predict(scaled_input)[0][0]
-    else: pred_1day = 100  # placeholder
+    # ---------------- Predictions with safe fallback ----------------
+    if model_1day:
+        pred_1day = model_1day.predict(scaled_input)[0][0]
+    else:
+        pred_1day = 100  # placeholder
 
-    if model_5day: pred_5day = model_5day.predict(scaled_input)[0][0]
-    else: pred_5day = 105  # placeholder
+    if model_5day:
+        pred_5day = model_5day.predict(scaled_input)[0][0]
+    else:
+        pred_5day = 105  # placeholder
 
-    if model_10day: pred_10day = model_10day.predict(scaled_input)[0][0]
-    else: pred_10day = 110  # placeholder
+    if model_10day:
+        pred_10day = model_10day.predict(scaled_input)[0][0]
+    else:
+        pred_10day = 110  # placeholder
 
-    # Pick prediction based on selected horizon
+    # Select prediction based on horizon
     if horizon == "1-Day":
         predicted_value = pred_1day
     elif horizon == "5-Day":
@@ -60,7 +66,7 @@ with tab1:
     st.markdown(f"**Predicted Value:** {predicted_value:.2f}")
     st.markdown("*Disclaimer: This prediction is based on historical data and may not reflect real future prices.*")
 
-    # Small graph showing all horizons
+    # Graph showing all horizons
     st.subheader("Prediction Visualization")
     horizons = ["1-Day", "5-Day", "10-Day"]
     predictions = [pred_1day, pred_5day, pred_10day]
