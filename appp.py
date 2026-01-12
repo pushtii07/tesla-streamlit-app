@@ -11,7 +11,7 @@ st.title("📈 Tesla Stock Price Prediction")
 def load_lstm_model(model_name):
     model_path = os.path.join("models", model_name)
     if os.path.exists(model_path):
-        return load_model(model_path, compile=False)  # Only for prediction
+        return load_model(model_path, compile=False)
     else:
         st.error(f"Model {model_name} not found!")
         return None
@@ -21,7 +21,6 @@ model_5day = load_lstm_model("lstm_5day.h5")
 model_10day = load_lstm_model("lstm_10day.h5")
 
 # ----------------- Predefined Tesla Close Prices -----------------
-# Must have at least 60 values for LSTM input
 tesla_close_prices = np.array([
 130.5, 131.2, 132.0, 131.8, 132.5, 133.0, 134.2, 135.0,
 134.8, 135.5, 136.0, 135.8, 136.5, 137.0, 138.2, 138.5,
@@ -33,7 +32,14 @@ tesla_close_prices = np.array([
 156.0, 156.5, 157.0, 157.5, 158.0, 158.5
 ])
 
-# Scale the data
+# ----------------- Pad if <60 values -----------------
+if len(tesla_close_prices) < 60:
+    pad_length = 60 - len(tesla_close_prices)
+    tesla_close_prices = np.concatenate(
+        (np.full(pad_length, tesla_close_prices[0]), tesla_close_prices)
+    )
+
+# Scale data
 scaler = MinMaxScaler(feature_range=(0,1))
 data_scaled = scaler.fit_transform(tesla_close_prices.reshape(-1,1))
 
@@ -64,3 +70,4 @@ if st.button("Predict"):
         pred = predict_future(model_10day, data_scaled, scaler, days=10)
     
     st.success(f"🔹 Predicted Tesla Close Price for {horizon}-Day(s): ${pred:.2f}")
+
