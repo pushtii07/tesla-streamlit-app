@@ -6,29 +6,18 @@ from sklearn.preprocessing import MinMaxScaler
 import matplotlib.pyplot as plt
 import os
 
-# ----------------- Page Configuration -----------------
+# ----------------- Page Setup -----------------
 st.set_page_config(
     page_title="Tesla Stock Prediction",
     layout="centered",
-    page_icon="📈"
-)
-
-# ----------------- Apply Dark Theme -----------------
-st.markdown(
-    """
-    <style>
-    .main {background-color: #000000; color: white;}
-    .stButton>button {background-color:#444444; color:white;}
-    .stSelectbox>div>div>div {background-color:#222222; color:white;}
-    </style>
-    """,
-    unsafe_allow_html=True
+    page_icon="📈",
+    initial_sidebar_state="expanded"
 )
 
 # ----------------- Sidebar for Pages -----------------
 page = st.sidebar.selectbox("Navigation", ["Prediction", "Technologies Used"])
 
-# ----------------- Load Models Function -----------------
+# ----------------- Load Models -----------------
 def load_lstm_model(model_file):
     path = os.path.join("models", model_file)
     if os.path.exists(path):
@@ -49,18 +38,18 @@ tesla_close_prices = np.array([
 156.0, 156.5, 157.0, 157.5
 ])
 
-# ----------------- Ensure minimum 60 values -----------------
+# Ensure minimum 60 values
 if len(tesla_close_prices) < 60:
     pad_length = 60 - len(tesla_close_prices)
     tesla_close_prices = np.concatenate(
         (np.full(pad_length, tesla_close_prices[0]), tesla_close_prices)
     )
 
-# ----------------- Scale Data -----------------
+# Scale data
 scaler = MinMaxScaler(feature_range=(0,1))
 data_scaled = scaler.fit_transform(tesla_close_prices.reshape(-1,1))
 
-# ----------------- Prediction Function -----------------
+# Prediction function
 def predict_future(model, data_scaled, scaler):
     seq_length = 60
     x_input = np.array(data_scaled[-seq_length:]).reshape(1, seq_length, 1)
@@ -72,13 +61,12 @@ def predict_future(model, data_scaled, scaler):
 if page == "Prediction":
     st.header("Tesla Stock Price Prediction")
     
-    # Load models
     model_1day = load_lstm_model("lstm_1day.h5")
     model_5day = load_lstm_model("lstm_5day.h5")
     model_10day = load_lstm_model("lstm_10day.h5")
     
-    st.markdown("Select the prediction horizon (1, 5, or 10 days) and click Predict.")
-    horizon = st.selectbox("Prediction Horizon (days)", [1, 5, 10])
+    st.markdown("Select the prediction horizon and click Predict:")
+    horizon = st.selectbox("Prediction Horizon (days)", [1,5,10])
     
     if st.button("Predict"):
         if horizon == 1:
@@ -94,11 +82,12 @@ if page == "Prediction":
         plt.figure(figsize=(10,4))
         plt.plot(range(len(tesla_close_prices)), tesla_close_prices, label="Historical Prices", color="cyan")
         plt.scatter(len(tesla_close_prices)+horizon-1, pred, color="red", label=f"Predicted {horizon}-Day Price", s=100)
-        plt.xlabel("Days")
-        plt.ylabel("Price")
-        plt.title("Tesla Prices and Prediction")
-        plt.legend()
-        plt.grid(True, alpha=0.3)
+        plt.xlabel("Days", color="white")
+        plt.ylabel("Price", color="white")
+        plt.title("Tesla Prices and Prediction", color="white")
+        plt.legend(facecolor="#222222", edgecolor="white")
+        plt.grid(True, alpha=0.3, color="gray")
+        plt.gca().set_facecolor("#000000")
         st.pyplot(plt)
 
 # ----------------- Technologies Page -----------------
@@ -108,15 +97,15 @@ else:
     st.markdown("""
     **1. Python:** Programming language used for the project.
 
-    **2. Streamlit:** Used for creating the interactive web app.
+    **2. Streamlit:** Used to create the interactive web app.
 
-    **3. NumPy:** For numerical operations on arrays.
+    **3. NumPy:** For numerical operations.
 
-    **4. Matplotlib:** To visualize historical prices and predictions.
+    **4. Matplotlib:** For plotting historical and predicted prices.
 
     **5. TensorFlow & Keras:** For building and loading LSTM models.
 
-    **6. scikit-learn (MinMaxScaler):** For scaling the data before feeding into LSTM.
+    **6. scikit-learn (MinMaxScaler):** To scale the data for LSTM.
 
     **7. LSTM Models:** Pre-trained Long Short-Term Memory neural networks for predicting Tesla stock prices.
     
