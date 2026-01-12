@@ -104,7 +104,7 @@ elif page == "📂 Project Information":
     col_c.metric("End Date", str(df['Date'].max().date()))
 
     st.markdown("""
-    ---
-    **Author:** [Your Name/GitHub Handle]  
+    --- 
     **Frameworks:** Streamlit, TensorFlow/Keras, Pandas, Plotly.
     """)
+
