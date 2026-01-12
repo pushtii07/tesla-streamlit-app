@@ -30,6 +30,7 @@ def check_models_exist():
     for key, file in MODEL_FILES.items():
         path = os.path.join(MODEL_FOLDER, file)
         if not os.path.isfile(path):
+            st.warning(f"Looking for: {os.path.abspath(path)}")
             missing.append(file)
     return missing
 
@@ -37,7 +38,11 @@ def load_models():
     models = {}
     for key, file in MODEL_FILES.items():
         path = os.path.join(MODEL_FOLDER, file)
-        models[key] = load_model(path)
+        try:
+            models[key] = load_model(path)
+        except Exception as e:
+            st.error(f"Error loading {file}: {e}")
+            st.stop()
     return models
 
 def preprocess_data(df):
@@ -68,8 +73,8 @@ uploaded_file = st.sidebar.file_uploader("Upload Tesla Stock CSV", type=["csv"],
 # ----------------- Check Models -----------------
 missing_models = check_models_exist()
 if missing_models:
-    st.error(f"The following model files are missing in the '{MODEL_FOLDER}' folder: {missing_models}")
-    st.stop()  # Stop app if models are missing
+    st.error(f"❌ Missing model files in '{MODEL_FOLDER}': {missing_models}")
+    st.stop()
 
 # ----------------- Load Models -----------------
 models = load_models()
@@ -130,12 +135,6 @@ if uploaded_file:
 
 else:
     st.info("Please upload your TSLA CSV file to continue.")
-
-
-
-
-
-
 
 
 
