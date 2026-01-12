@@ -1,28 +1,43 @@
+# appp.py
 import streamlit as st
 import numpy as np
 from tensorflow.keras.models import load_model
 from sklearn.preprocessing import MinMaxScaler
+import matplotlib.pyplot as plt
 import os
 
-# ----------------- Page Settings -----------------
-st.set_page_config(page_title="Tesla Stock Prediction", layout="centered")
-st.title("📈 Tesla Stock Price Prediction")
+# ----------------- Page Configuration -----------------
+st.set_page_config(
+    page_title="Tesla Stock Prediction",
+    layout="centered",
+    page_icon="📈"
+)
 
-# ----------------- Load LSTM Models -----------------
-def load_lstm_model(model_name):
-    model_path = os.path.join("models", model_name)
-    if os.path.exists(model_path):
-        return load_model(model_path, compile=False)  # Only for prediction
+# ----------------- Apply Dark Theme -----------------
+st.markdown(
+    """
+    <style>
+    .main {background-color: #000000; color: white;}
+    .stButton>button {background-color:#444444; color:white;}
+    .stSelectbox>div>div>div {background-color:#222222; color:white;}
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
+# ----------------- Sidebar for Pages -----------------
+page = st.sidebar.selectbox("Navigation", ["Prediction", "Technologies Used"])
+
+# ----------------- Load Models Function -----------------
+def load_lstm_model(model_file):
+    path = os.path.join("models", model_file)
+    if os.path.exists(path):
+        return load_model(path, compile=False)
     else:
-        st.error(f"Model {model_name} not found!")
+        st.error(f"Model {model_file} not found!")
         return None
 
-model_1day = load_lstm_model("lstm_1day.h5")
-model_5day = load_lstm_model("lstm_5day.h5")
-model_10day = load_lstm_model("lstm_10day.h5")
-
-# ----------------- Predefined Tesla Close Prices -----------------
-# Must have at least 60 values for LSTM
+# ----------------- Hardcoded Tesla Close Prices -----------------
 tesla_close_prices = np.array([
 130.5, 131.2, 132.0, 131.8, 132.5, 133.0, 134.2, 135.0,
 134.8, 135.5, 136.0, 135.8, 136.5, 137.0, 138.2, 138.5,
@@ -34,7 +49,7 @@ tesla_close_prices = np.array([
 156.0, 156.5, 157.0, 157.5
 ])
 
-# ----------------- Ensure at least 60 values -----------------
+# ----------------- Ensure minimum 60 values -----------------
 if len(tesla_close_prices) < 60:
     pad_length = 60 - len(tesla_close_prices)
     tesla_close_prices = np.concatenate(
@@ -47,22 +62,64 @@ data_scaled = scaler.fit_transform(tesla_close_prices.reshape(-1,1))
 
 # ----------------- Prediction Function -----------------
 def predict_future(model, data_scaled, scaler):
-    # Use last 60 values as input
     seq_length = 60
     x_input = np.array(data_scaled[-seq_length:]).reshape(1, seq_length, 1)
     yhat = model.predict(x_input, verbose=0)
     predicted = scaler.inverse_transform(yhat.reshape(-1,1))
-    return predicted.flatten()[0]  # Single predicted value
+    return predicted.flatten()[0]
 
-# ----------------- Streamlit UI -----------------
-horizon = st.selectbox("Select Prediction Horizon (days)", [1, 5, 10])
-
-if st.button("Predict"):
-    if horizon == 1:
-        pred = predict_future(model_1day, data_scaled, scaler)
-    elif horizon == 5:
-        pred = predict_future(model_5day, data_scaled, scaler)
-    else:
-        pred = predict_future(model_10day, data_scaled, scaler)
+# ----------------- Prediction Page -----------------
+if page == "Prediction":
+    st.header("Tesla Stock Price Prediction")
     
-    st.success(f"🔹 Predicted Tesla Close Price for {horizon}-Day(s): ${pred:.2f}")
+    # Load models
+    model_1day = load_lstm_model("lstm_1day.h5")
+    model_5day = load_lstm_model("lstm_5day.h5")
+    model_10day = load_lstm_model("lstm_10day.h5")
+    
+    st.markdown("Select the prediction horizon (1, 5, or 10 days) and click Predict.")
+    horizon = st.selectbox("Prediction Horizon (days)", [1, 5, 10])
+    
+    if st.button("Predict"):
+        if horizon == 1:
+            pred = predict_future(model_1day, data_scaled, scaler)
+        elif horizon == 5:
+            pred = predict_future(model_5day, data_scaled, scaler)
+        else:
+            pred = predict_future(model_10day, data_scaled, scaler)
+        
+        st.success(f"🔹 Predicted Tesla Close Price for {horizon}-Day(s): ${pred:.2f}")
+        
+        # ----------------- Plot -----------------
+        plt.figure(figsize=(10,4))
+        plt.plot(range(len(tesla_close_prices)), tesla_close_prices, label="Historical Prices", color="cyan")
+        plt.scatter(len(tesla_close_prices)+horizon-1, pred, color="red", label=f"Predicted {horizon}-Day Price", s=100)
+        plt.xlabel("Days")
+        plt.ylabel("Price")
+        plt.title("Tesla Prices and Prediction")
+        plt.legend()
+        plt.grid(True, alpha=0.3)
+        st.pyplot(plt)
+
+# ----------------- Technologies Page -----------------
+else:
+    st.header("Technologies Used")
+    
+    st.markdown("""
+    **1. Python:** Programming language used for the project.
+
+    **2. Streamlit:** Used for creating the interactive web app.
+
+    **3. NumPy:** For numerical operations on arrays.
+
+    **4. Matplotlib:** To visualize historical prices and predictions.
+
+    **5. TensorFlow & Keras:** For building and loading LSTM models.
+
+    **6. scikit-learn (MinMaxScaler):** For scaling the data before feeding into LSTM.
+
+    **7. LSTM Models:** Pre-trained Long Short-Term Memory neural networks for predicting Tesla stock prices.
+    
+    ---
+    """)
+    st.markdown("Use the sidebar to navigate back to the Prediction page.")
