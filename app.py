@@ -6,31 +6,41 @@ from tensorflow.keras.models import load_model
 from sklearn.preprocessing import MinMaxScaler
 import os
 
-# --------------------------------------------------
-# Page configuration
-# --------------------------------------------------
+# ==================================================
+# PAGE CONFIG
+# ==================================================
 st.set_page_config(
-    page_title="Tesla Stock Price Prediction",
+    page_title="Tesla Stock Prediction",
     layout="wide"
 )
 
-st.title("📈 Tesla Stock Price Prediction")
-st.markdown("### Deep Learning based Forecasting using LSTM")
+# ==================================================
+# DARK THEME (CUSTOM CSS)
+# ==================================================
+st.markdown("""
+<style>
+body {
+    background-color: #0e1117;
+    color: white;
+}
+[data-testid="stAppViewContainer"] {
+    background-color: #0e1117;
+}
+[data-testid="stHeader"] {
+    background-color: #0e1117;
+}
+[data-testid="stSidebar"] {
+    background-color: #111827;
+}
+h1, h2, h3, h4, h5, h6, p, span, label {
+    color: white !important;
+}
+</style>
+""", unsafe_allow_html=True)
 
-# --------------------------------------------------
-# Sidebar
-# --------------------------------------------------
-st.sidebar.header("Forecast Settings")
-
-horizon = st.sidebar.selectbox(
-    "Select Forecast Horizon",
-    options=[1, 5, 10],
-    index=0
-)
-
-# --------------------------------------------------
-# Load dataset
-# --------------------------------------------------
+# ==================================================
+# LOAD DATA
+# ==================================================
 @st.cache_data
 def load_data():
     df = pd.read_csv("TSLA.csv")
@@ -39,151 +49,139 @@ def load_data():
     df.set_index("Date", inplace=True)
     return df
 
-try:
-    df = load_data()
-except Exception as e:
-    st.error("❌ Unable to load TSLA.csv")
-    st.stop()
-
-# --------------------------------------------------
-# Use Adj Close (as per project requirement)
-# --------------------------------------------------
-if "Adj Close" not in df.columns:
-    st.error("❌ 'Adj Close' column not found in dataset")
-    st.stop()
+df = load_data()
 
 prices = df["Adj Close"].values.reshape(-1, 1)
 
-# --------------------------------------------------
-# Scaling
-# --------------------------------------------------
-scaler = MinMaxScaler(feature_range=(0, 1))
+scaler = MinMaxScaler()
 scaled_prices = scaler.fit_transform(prices)
 
-# --------------------------------------------------
-# Sequence preparation
-# --------------------------------------------------
 WINDOW_SIZE = 60
+last_sequence = scaled_prices[-WINDOW_SIZE:].reshape(1, WINDOW_SIZE, 1)
 
-last_sequence = scaled_prices[-WINDOW_SIZE:]
-last_sequence = last_sequence.reshape(1, WINDOW_SIZE, 1)
-
-# --------------------------------------------------
-# Load correct model
-# --------------------------------------------------
+# ==================================================
+# LOAD MODELS
+# ==================================================
 MODEL_PATHS = {
-    1: "models/tesla_model_1day_lstm.h5",
-    5: "models/tesla_model_5day_lstm.h5",
-    10: "models/tesla_model_10day_lstm.h5"
+    ("LSTM", 1): "models/tesla_model_1day_lstm.h5",
+    ("LSTM", 5): "models/tesla_model_5day_lstm.h5",
+    ("LSTM", 10): "models/tesla_model_10day_lstm.h5",
 }
 
-model_path = MODEL_PATHS[horizon]
+# ==================================================
+# TOP NAVIGATION TABS (LIKE WEBSITE)
+# ==================================================
+tab1, tab2, tab3 = st.tabs(["🔮 Prediction", "📊 Project Overview", "ℹ️ About Project"])
 
-if not os.path.exists(model_path):
-    st.error(f"❌ Model file not found: {model_path}")
-    st.stop()
+# ==================================================
+# TAB 1 — PREDICTION PAGE
+# ==================================================
+with tab1:
+    st.title("📈 Tesla Stock Price Prediction")
 
-model = load_model(model_path, compile=False)
+    col1, col2 = st.columns(2)
 
-# --------------------------------------------------
-# Prediction
-# --------------------------------------------------
-scaled_prediction = model.predict(last_sequence)
+    with col1:
+        model_type = st.selectbox("Select Model", ["LSTM"])
+    with col2:
+        horizon = st.selectbox("Forecast Horizon (Days)", [1, 5, 10])
 
-# If model predicts multiple steps (5-day / 10-day),
-# take the LAST day prediction
-if scaled_prediction.ndim == 2 and scaled_prediction.shape[1] > 1:
-    scaled_prediction_value = scaled_prediction[0, -1]
-else:
-    scaled_prediction_value = scaled_prediction[0][0]
+    model_path = MODEL_PATHS[(model_type, horizon)]
+    model = load_model(model_path, compile=False)
 
-prediction = scaler.inverse_transform(
-    np.array([[scaled_prediction_value]])
-)[0][0]
+    scaled_pred = model.predict(last_sequence)
 
-last_actual_price = prices[-1][0]
+    if scaled_pred.ndim == 2 and scaled_pred.shape[1] > 1:
+        scaled_pred_value = scaled_pred[0, -1]
+    else:
+        scaled_pred_value = scaled_pred[0][0]
 
-# --------------------------------------------------
-# Market trend logic
-# --------------------------------------------------
-if prediction > last_actual_price * 1.01:
-    trend = "📈 Bullish"
-elif prediction < last_actual_price * 0.99:
-    trend = "📉 Bearish"
-else:
-    trend = "➖ Sideways"
+    prediction = scaler.inverse_transform([[scaled_pred_value]])[0][0]
+    last_price = prices[-1][0]
 
-# --------------------------------------------------
-# Display prediction
-# --------------------------------------------------
-st.subheader(f"🔮 Predicted Closing Price ({horizon}-Day Ahead)")
-st.metric(
-    label="Predicted Price (USD)",
-    value=f"${prediction:,.2f}",
-    delta=f"{prediction - last_actual_price:,.2f}"
-)
+    if prediction > last_price * 1.01:
+        trend = "📈 Bullish"
+    elif prediction < last_price * 0.99:
+        trend = "📉 Bearish"
+    else:
+        trend = "➖ Sideways"
 
-st.markdown(f"### Market Trend: **{trend}**")
+    st.metric(
+        label=f"Predicted Price ({horizon}-Day Ahead)",
+        value=f"${prediction:,.2f}",
+        delta=f"{prediction - last_price:,.2f}"
+    )
 
-# --------------------------------------------------
-# Visualization
-# --------------------------------------------------
-st.subheader("📊 Historical Prices & Prediction")
+    st.markdown(f"### Market Trend: **{trend}**")
 
-# --------------------------------------------------
-# Visualization
-# --------------------------------------------------
-st.subheader("📊 Historical Prices & Prediction")
+# ==================================================
+# TAB 2 — PROJECT OVERVIEW + GRAPH
+# ==================================================
+with tab2:
+    st.title("📊 Project Overview")
 
-col1, col2, col3 = st.columns([1, 3, 1])
+    st.markdown("""
+    ### Tesla Stock Price Prediction using Deep Learning
 
-with col2:
-    fig, ax = plt.subplots(figsize=(8, 4))
-    ax.plot(df.index[-120:], prices[-120:], label="Actual Price", linewidth=2)
-    ax.axhline(prediction, color="red", linestyle="--", linewidth=2, label="Predicted Price")
-    ax.set_title(f"LSTM Model – {horizon}-Day Forecast")
-    ax.set_xlabel("Date")
-    ax.set_ylabel("Price (USD)")
-    ax.legend()
-    ax.grid(alpha=0.3)
+    This project focuses on predicting **Tesla stock closing prices**
+    using **Recurrent Neural Networks (RNN)** and **Long Short-Term Memory (LSTM)** models.
 
-    st.pyplot(fig, use_container_width=True)
+    **Key Highlights**
+    - Time-series forecasting
+    - 1-day, 5-day, 10-day prediction
+    - LSTM based deep learning models
+    - Interactive Streamlit dashboard
+    """)
 
+    col1, col2, col3 = st.columns([1, 3, 1])
 
-# --------------------------------------------------
-# Project description
-# --------------------------------------------------
+    with col2:
+        fig, ax = plt.subplots(figsize=(8, 4))
+        ax.plot(df.index[-120:], prices[-120:], label="Actual Price", linewidth=2)
+        ax.set_title("Tesla Historical Closing Prices")
+        ax.set_xlabel("Date")
+        ax.set_ylabel("Price (USD)")
+        ax.legend()
+        ax.grid(alpha=0.3)
+        st.pyplot(fig)
+
+# ==================================================
+# TAB 3 — ABOUT PROJECT
+# ==================================================
+with tab3:
+    st.title("ℹ️ About This Project")
+
+    st.markdown("""
+    ### Domain
+    **Financial Services / Stock Market Analysis**
+
+    ### Technologies Used
+    - Python
+    - TensorFlow / Keras
+    - Pandas, NumPy
+    - Scikit-learn
+    - Streamlit
+
+    ### Business Use Cases
+    - Stock trend analysis
+    - Investment planning
+    - Financial forecasting
+    - Educational deep learning applications
+
+    ### Disclaimer
+    ⚠️ This project is created **only for academic and learning purposes**.
+    It must **not** be used for real-world trading decisions.
+    """)
+
+# ==================================================
+# FOOTER
+# ==================================================
 st.markdown("---")
-st.markdown("""
-### 📌 Project Overview
-This project predicts **Tesla stock closing prices** using  
-**Long Short-Term Memory (LSTM)** deep learning models.
-
-**Key Features**
-- Time-series forecasting using historical prices
-- Predictions for **1-day, 5-day, and 10-day horizons**
-- Model comparison based on forecast horizon
-- Interactive Streamlit dashboard
-
-**Tech Stack**
-- Python
-- TensorFlow / Keras
-- Pandas, NumPy
-- Scikit-learn
-- Streamlit
-""")
-
-# --------------------------------------------------
-# Disclaimer
-# --------------------------------------------------
-st.warning(
-    """
-⚠️ **Disclaimer**  
-This application is built strictly for **academic and learning purposes**.  
-Stock prices are influenced by many unpredictable factors.  
-This app **must not be used for real-world trading or financial decisions**.
-"""
+st.markdown(
+    "<center>🚀 Tesla Stock Prediction Project | Deep Learning & Streamlit</center>",
+    unsafe_allow_html=True
 )
+
 
 
 
