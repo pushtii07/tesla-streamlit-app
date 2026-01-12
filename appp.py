@@ -112,3 +112,4 @@ else:
     ---
     """)
     st.markdown("Use the sidebar to navigate back to the Prediction page.")
+
