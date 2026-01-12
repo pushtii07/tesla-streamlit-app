@@ -5,10 +5,14 @@ import matplotlib.pyplot as plt
 from tensorflow.keras.models import load_model
 from sklearn.preprocessing import MinMaxScaler
 import os
+from tensorflow.keras.models import load_model
+
 model_path = "models"
-models['1day'] = load_model(os.path.join(model_path, "tesla_model_1day_lstm.h5"))
-models['5day'] = load_model(os.path.join(model_path, "tesla_model_5day_lstm.h5"))
-models['10day'] = load_model(os.path.join(model_path, "tesla_model_10day_lstm.h5"))
+
+model_1day = load_model(os.path.join(model_path, "tesla_model_1day_lstm.h5"))
+model_5day = load_model(os.path.join(model_path, "tesla_model_5day_lstm.h5"))
+model_10day = load_model(os.path.join(model_path, "tesla_model_10day_lstm.h5"))
+
 
 
 # ----------------- Page Config -----------------
@@ -124,6 +128,7 @@ if uploaded_file:
 
 else:
     st.info("Please upload your Tesla stock CSV file to continue.")
+
 
 
 
