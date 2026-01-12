@@ -1,5 +1,4 @@
 import streamlit as st
-import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 from tensorflow.keras.models import load_model
@@ -16,11 +15,6 @@ def load_lstm_model(model_name):
     else:
         st.error(f"Model {model_name} not found in 'models/' folder!")
         return None
-
-def preprocess_data(data):
-    scaler = MinMaxScaler(feature_range=(0, 1))
-    scaled = scaler.fit_transform(data['Close'].values.reshape(-1,1))
-    return scaled, scaler
 
 def predict_future(model, data_scaled, scaler, days=1):
     seq_length = 60
@@ -53,40 +47,41 @@ model_1day = load_lstm_model("lstm_1day.h5")
 model_5day = load_lstm_model("lstm_5day.h5")
 model_10day = load_lstm_model("lstm_10day.h5")
 
-# ----------------- App Layout -----------------
+# ----------------- Predefined Tesla Close Prices -----------------
+# You can replace this with the latest historical data
+tesla_close_prices = np.array([
+    130.5, 131.2, 132.0, 131.8, 132.5, 133.0, 134.2, 135.0,
+    134.8, 135.5, 136.0, 135.8, 136.5, 137.0, 138.2, 138.5,
+    138.0, 137.5, 138.0, 138.8, 139.0, 139.5, 140.0, 139.8,
+    140.5, 141.0, 141.5, 142.0, 142.5, 143.0, 143.5, 144.0,
+    144.5, 145.0, 145.2, 145.5, 146.0, 146.5, 147.0, 147.5,
+    148.0, 148.5, 149.0, 149.5, 150.0, 150.5, 151.0, 151.5,
+    152.0, 152.5, 153.0, 153.5, 154.0, 154.5, 155.0, 155.5,
+    156.0, 156.5, 157.0, 157.5, 158.0, 158.5
+])
+
 st.title("📈 Tesla Stock Price Prediction (LSTM)")
 
-uploaded_file = st.file_uploader("Upload Tesla Historical Stock CSV", type=["csv"])
-if uploaded_file:
-    df = pd.read_csv('TSLA.csv')
-    st.subheader("Raw Data")
-    st.dataframe(df.tail(10))
+# ----------------- Scaling Data -----------------
+scaler = MinMaxScaler(feature_range=(0,1))
+data_scaled = scaler.fit_transform(tesla_close_prices.reshape(-1,1))
 
-    if 'Close' not in df.columns:
-        st.error("CSV must contain 'Close' column!")
-    else:
-        data_scaled, scaler = preprocess_data(df)
-        
-        # Predictions
-        if model_1day and model_5day and model_10day:
-            pred_1 = predict_future(model_1day, data_scaled, scaler, days=1)
-            pred_5 = predict_future(model_5day, data_scaled, scaler, days=5)
-            pred_10 = predict_future(model_10day, data_scaled, scaler, days=10)
+# ----------------- Predictions -----------------
+if model_1day and model_5day and model_10day:
+    pred_1 = predict_future(model_1day, data_scaled, scaler, days=1)
+    pred_5 = predict_future(model_5day, data_scaled, scaler, days=5)
+    pred_10 = predict_future(model_10day, data_scaled, scaler, days=10)
 
-            st.subheader("Predictions")
-            st.write(f"🔹 1-Day Prediction: ${pred_1[-1]:.2f}")
-            st.write(f"🔹 5-Day Prediction: ${pred_5[-1]:.2f}")
-            st.write(f"🔹 10-Day Prediction: ${pred_10[-1]:.2f}")
+    st.subheader("Predicted Values")
+    st.write(f"🔹 1-Day Prediction: ${pred_1[-1]:.2f}")
+    st.write(f"🔹 5-Day Prediction: ${pred_5[-1]:.2f}")
+    st.write(f"🔹 10-Day Prediction: ${pred_10[-1]:.2f}")
 
-            # Trend Analysis (1-day)
-            trend = "Upward 📈" if pred_1[-1] > df['Close'].iloc[-1] else "Downward 📉"
-            st.markdown(f"### Market Trend (1-Day): **{trend}**")
+    # Trend Analysis (1-day)
+    trend = "Upward 📈" if pred_1[-1] > tesla_close_prices[-1] else "Downward 📉"
+    st.markdown(f"### Market Trend (1-Day): **{trend}**")
 
-            # Plot predictions
-            plot_predictions(df['Close'].values, pred_1, pred_5, pred_10)
-
-        else:
-            st.error("One or more models could not be loaded. Check 'models/' folder.")
+    # Plot predictions
+    plot_predictions(tesla_close_prices, pred_1, pred_5, pred_10)
 else:
-    st.info("Please upload a CSV file with Tesla historical stock prices (must include 'Close' column).")
-
+    st.error("One or more models could not be loaded. Check 'models/' folder.")
