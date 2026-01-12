@@ -28,7 +28,7 @@ horizon = st.sidebar.selectbox("Select Forecast Horizon (Days Ahead)", [1, 5, 10
 # ------------------ LOAD DATA ------------------
 uploaded_file = st.file_uploader("Upload Tesla CSV file (with 'Date' and 'Close' columns)", type=["csv"])
 if uploaded_file:
-    df = pd.read_csv(uploaded_file)
+    df = pd.read_csv("C:\Users\HP\OneDrive\Desktop\tesla-streamlit-app\TSLA.csv")
     df["Date"] = pd.to_datetime(df["Date"])
     close_prices = df["Close"].values.reshape(-1, 1)
     
@@ -88,3 +88,4 @@ if uploaded_file:
     - Prediction is based on **past 60 trading days** using an **LSTM neural network**.
     - Current trend detected: **{trend}**.
     - This forecast helps investors understand
+
