@@ -1,78 +1,125 @@
-# app.py - Tesla Stock Prediction Deployment
 import streamlit as st
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-import os
 from tensorflow.keras.models import load_model
 from sklearn.preprocessing import MinMaxScaler
 
-# ----------------- Paths -----------------
-MODEL_FOLDER = "models"  # folder containing your .h5 models
-MODEL_FILES = {
-    "1-day": "tesla_model_1day_lstm.h5",
-    "5-day": "tesla_model_5day_lstm.h5",
-    "10-day": "tesla_model_10day_lstm.h5"
-}
+# ------------------ PAGE CONFIG ------------------
+st.set_page_config(
+    page_title="Tesla Stock Price Forecasting System",
+    page_icon="📈",
+    layout="wide"
+)
 
-# ----------------- Load Models -----------------
-models = {}
-for key, file in MODEL_FILES.items():
-    model_path = os.path.join(MODEL_FOLDER, file)
-    if os.path.exists(model_path):
-        models[key] = load_model(model_path)
-    else:
-        st.error(f"Model file not found: {model_path}")
+# ------------------ TITLE ------------------
+st.title("📈 Tesla Stock Price Forecasting System")
+st.markdown(
+    """
+    **An AI-powered system using LSTM deep learning models  
+    to forecast future Tesla stock closing prices.**
+    """
+)
 
-# ----------------- Streamlit Page -----------------
-st.title("Tesla Stock Price Prediction 📈")
-st.write("Select prediction horizon and input recent stock data to forecast Tesla stock prices.")
+st.divider()
 
-# Upload CSV for recent Tesla data
-uploaded_file = st.file_uploader("Upload CSV (with 'Close' prices column)", type=["csv"])
-if uploaded_file:
-    df = pd.read_csv('TSLA.csv')
-    st.subheader("Recent Tesla Data")
-    st.dataframe(df.tail())
+# ------------------ SIDEBAR ------------------
+st.sidebar.header("⚙️ Forecast Settings")
 
-    # Feature scaling
-    scaler = MinMaxScaler(feature_range=(0,1))
-    close_prices = df['Close'].values.reshape(-1,1)
-    scaled_prices = scaler.fit_transform(close_prices)
+horizon = st.sidebar.selectbox(
+    "Select Forecast Horizon (Days Ahead)",
+    [1, 5, 10]
+)
 
-    # Select prediction horizon
-    horizon = st.selectbox("Select prediction horizon", ["1-day", "5-day", "10-day"])
-    model = models.get(horizon)
+# ------------------ LOAD DATA ------------------
+df = pd.read_csv("TSLA.csv")
+df["Date"] = pd.to_datetime(df["Date"])
+close_prices = df["Close"].values.reshape(-1, 1)
 
-    if model:
-        # Prepare last 60 days for LSTM input
-        X_test = []
-        last_60_days = scaled_prices[-60:]
-        X_test.append(last_60_days)
-        X_test = np.array(X_test)
-        X_test = np.reshape(X_test, (X_test.shape[0], X_test.shape[1], 1))
+# ------------------ SCALING ------------------
+scaler = MinMaxScaler()
+scaled_data = scaler.fit_transform(close_prices)
 
-        # Predict
-        predicted_scaled = model.predict(X_test)
-        predicted = scaler.inverse_transform(predicted_scaled)
+last_60 = scaled_data[-60:].reshape(1, 60, 1)
 
-        st.subheader(f"Predicted Tesla Price for {horizon}:")
-        st.write(predicted.flatten()[0])
+# ------------------ LOAD MODEL ------------------
+model_path = f"models/tesla_model_{horizon}day.h5"
+model = load_model(model_path, compile=False)
 
-        # Plot
-        st.subheader("Price Trend")
-        plt.figure(figsize=(10,5))
-        plt.plot(close_prices[-60:], color='blue', label='Recent Prices')
-        plt.plot(range(60,61), predicted, color='red', marker='o', label='Prediction')
-        plt.title(f"Tesla Stock Price Prediction ({horizon})")
-        plt.xlabel("Days")
-        plt.ylabel("Price ($)")
-        plt.legend()
-        st.pyplot(plt)
-    else:
-        st.warning("Selected model is not loaded.")
+# ------------------ PREDICTION ------------------
+scaled_prediction = model.predict(last_60)
+predicted_price = scaler.inverse_transform(scaled_prediction)[0][0]
+
+# ------------------ METRICS ------------------
+col1, col2, col3 = st.columns(3)
+
+last_price = close_prices[-1][0]
+percent_change = ((predicted_price - last_price) / last_price) * 100
+
+if percent_change > 1:
+    trend = "📈 Bullish"
+elif percent_change < -1:
+    trend = "📉 Bearish"
 else:
-    st.info("Please upload your Tesla stock CSV file to continue.")
+    trend = "⚖️ Neutral"
+col1.metric("Latest Closing Price", f"${last_price:.2f}")
+col2.metric(f"Predicted Price ({horizon} Days)", f"${predicted_price:.2f}")
+col3.metric("Market Trend", trend)
+
+# ------------------ CHART ------------------
+st.subheader("📊 Historical Price Trend with Forecast")
+
+fig, ax = plt.subplots(figsize=(10, 5))
+ax.plot(close_prices, label="Historical Closing Price")
+
+ax.scatter(
+    len(close_prices),
+    predicted_price,
+    color="red",
+    s=100,
+    label=f"{horizon}-Day Forecast"
+)
+
+ax.set_xlabel("Trading Days")
+ax.set_ylabel("Price (USD)")
+ax.legend()
+
+st.pyplot(fig)
+
+# ------------------ INTERPRETATION ------------------
+st.subheader("🧠 Model Interpretation")
+
+st.markdown(
+    f"""
+    - The system predicts Tesla's **closing stock price {horizon} days ahead**.
+    - Prediction is based on **past 60 trading days** using an **LSTM neural network**.
+    - Current trend detected: **{trend}**.
+    - This forecast helps investors understand **short-term price direction**.
+    """
+)
+
+# ------------------ MODEL INFO ------------------
+with st.expander("📌 Model & Technology Details"):
+    st.markdown(
+        """
+        **Model Used:** Long Short-Term Memory (LSTM)  
+        **Why LSTM?** Effective for time-series and sequential data  
+        **Input Window:** Last 60 trading days  
+        **Output:** Single future closing price  
+        **Frameworks:** TensorFlow, Keras, Streamlit  
+        """
+    )
+
+# ------------------ DISCLAIMER ------------------
+st.warning(
+    """
+    ⚠️ **Disclaimer:**  
+    This project is created for **academic and learning purposes only**.  
+    Stock market prices are influenced by many external factors.  
+    This application should **not be used for real financial trading decisions**.
+    """
+)
+
 
 
 
