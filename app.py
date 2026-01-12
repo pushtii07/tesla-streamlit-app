@@ -31,7 +31,7 @@ st.write("Select prediction horizon and input recent stock data to forecast Tesl
 # Upload CSV for recent Tesla data
 uploaded_file = st.file_uploader("Upload CSV (with 'Close' prices column)", type=["csv"])
 if uploaded_file:
-    df = pd.read_csv(uploaded_file)
+    df = pd.read_csv('TSLA.csv')
     st.subheader("Recent Tesla Data")
     st.dataframe(df.tail())
 
@@ -73,6 +73,7 @@ if uploaded_file:
         st.warning("Selected model is not loaded.")
 else:
     st.info("Please upload your Tesla stock CSV file to continue.")
+
 
 
 
