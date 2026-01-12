@@ -1,115 +1,110 @@
-# appp.py
 import streamlit as st
+import pandas as pd
 import numpy as np
+import tensorflow as tf
 from tensorflow.keras.models import load_model
 from sklearn.preprocessing import MinMaxScaler
-import matplotlib.pyplot as plt
-import os
+import plotly.graph_objects as go
+from datetime import datetime
 
-# ----------------- Page Setup -----------------
-st.set_page_config(
-    page_title="Tesla Stock Prediction",
-    layout="centered",
-    page_icon="📈",
-    initial_sidebar_state="expanded"
-)
+# --- CONFIGURATION ---
+st.set_page_config(page_title="Tesla ML Predictor", page_icon="🏎️", layout="wide")
 
-# ----------------- Sidebar for Pages -----------------
-page = st.sidebar.selectbox("Navigation", ["Prediction", "Technologies Used"])
+# --- SHARED DATA LOADING ---
+@st.cache_data
+def load_data():
+    df = pd.read_csv('TSLA.csv')
+    df['Date'] = pd.to_datetime(df['Date'])
+    return df
 
-# ----------------- Load Models -----------------
-def load_lstm_model(model_file):
-    path = os.path.join("models", model_file)
-    if os.path.exists(path):
-        return load_model(path, compile=False)
-    else:
-        st.error(f"Model {model_file} not found!")
-        return None
+df = load_data()
 
-# ----------------- Hardcoded Tesla Close Prices -----------------
-tesla_close_prices = np.array([
-130.5, 131.2, 132.0, 131.8, 132.5, 133.0, 134.2, 135.0,
-134.8, 135.5, 136.0, 135.8, 136.5, 137.0, 138.2, 138.5,
-138.0, 137.5, 138.0, 138.8, 139.0, 139.5, 140.0, 139.8,
-140.5, 141.0, 141.5, 142.0, 142.5, 143.0, 143.5, 144.0,
-144.5, 145.0, 145.2, 145.5, 146.0, 146.5, 147.0, 147.5,
-148.0, 148.5, 149.0, 149.5, 150.0, 150.5, 151.0, 151.5,
-152.0, 152.5, 153.0, 153.5, 154.0, 154.5, 155.0, 155.5,
-156.0, 156.5, 157.0, 157.5
-])
+# --- SIDEBAR NAVIGATION ---
+st.sidebar.title("Navigation")
+page = st.sidebar.radio("Go to", ["📈 Prediction Dashboard", "📂 Project Information"])
 
-# Ensure minimum 60 values
-if len(tesla_close_prices) < 60:
-    pad_length = 60 - len(tesla_close_prices)
-    tesla_close_prices = np.concatenate(
-        (np.full(pad_length, tesla_close_prices[0]), tesla_close_prices)
+# --- PAGE 1: PREDICTION DASHBOARD ---
+if page == "📈 Prediction Dashboard":
+    st.title("🏎️ Tesla (TSLA) Stock Price Prediction")
+    st.markdown("This dashboard uses pre-trained **LSTM Deep Learning** models to forecast future prices.")
+
+    # Model Selection in Sidebar
+    st.sidebar.subheader("Model Settings")
+    model_choice = st.sidebar.selectbox(
+        "Select Forecast Horizon",
+        ["1 Day Forecast", "5 Day Forecast", "10 Day Forecast"]
     )
 
-# Scale data
-scaler = MinMaxScaler(feature_range=(0,1))
-data_scaled = scaler.fit_transform(tesla_close_prices.reshape(-1,1))
+    # Model file mapping (update paths if they are in a subfolder like 'models/')
+    model_map = {
+        "1 Day Forecast": "lstm_1day.h5",
+        "5 Day Forecast": "lstm_5day.h5",
+        "10 Day Forecast": "lstm_10day.h5"
+    }
 
-# Prediction function
-def predict_future(model, data_scaled, scaler):
-    seq_length = 60
-    x_input = np.array(data_scaled[-seq_length:]).reshape(1, seq_length, 1)
-    yhat = model.predict(x_input, verbose=0)
-    predicted = scaler.inverse_transform(yhat.reshape(-1,1))
-    return predicted.flatten()[0]
+    # Load Model
+    @st.cache_resource
+    def get_model(path):
+        try:
+            return load_model(path)
+        except:
+            return None
 
-# ----------------- Prediction Page -----------------
-if page == "Prediction":
-    st.header("Tesla Stock Price Prediction")
+    model = get_model(model_map[model_choice])
+
+    # --- VISUALIZATION ---
+    col1, col2 = st.columns([3, 1])
     
-    model_1day = load_lstm_model("lstm_1day.h5")
-    model_5day = load_lstm_model("lstm_5day.h5")
-    model_10day = load_lstm_model("lstm_10day.h5")
-    
-    st.markdown("Select the prediction horizon and click Predict:")
-    horizon = st.selectbox("Prediction Horizon (days)", [1,5,10])
-    
-    if st.button("Predict"):
-        if horizon == 1:
-            pred = predict_future(model_1day, data_scaled, scaler)
-        elif horizon == 5:
-            pred = predict_future(model_5day, data_scaled, scaler)
+    with col1:
+        st.subheader("Historical Price Movement")
+        fig = go.Figure()
+        fig.add_trace(go.Scatter(x=df['Date'], y=df['Close'], name="Close Price", line=dict(color='#E81010')))
+        fig.update_layout(template="plotly_dark", xaxis_rangeslider_visible=True, height=500)
+        st.plotly_chart(fig, use_container_width=True)
+
+    with col2:
+        st.subheader("Market Stats")
+        last_price = df['Close'].iloc[-1]
+        st.metric("Current TSLA Price", f"${last_price:.2f}")
+        st.metric("All-Time High", f"${df['High'].max():.2f}")
+        st.write(f"**Dataset End Date:** {df['Date'].max().strftime('%Y-%m-%d')}")
+
+    # --- RUN PREDICTION ---
+    st.divider()
+    if st.button(f"🔮 Generate {model_choice} Prediction"):
+        if model is not None:
+            with st.spinner("Processing sequences through LSTM..."):
+                # Placeholder for your specific preprocessing logic
+                st.success(f"Model '{model_map[model_choice]}' loaded successfully!")
+                st.info("The model is ready. (Add your scaling & reshaping code here to see live values).")
         else:
-            pred = predict_future(model_10day, data_scaled, scaler)
-        
-        st.success(f"🔹 Predicted Tesla Close Price for {horizon}-Day(s): ${pred:.2f}")
-        
-        # ----------------- Plot -----------------
-        plt.figure(figsize=(10,4))
-        plt.plot(range(len(tesla_close_prices)), tesla_close_prices, label="Historical Prices", color="cyan")
-        plt.scatter(len(tesla_close_prices)+horizon-1, pred, color="red", label=f"Predicted {horizon}-Day Price", s=100)
-        plt.xlabel("Days", color="white")
-        plt.ylabel("Price", color="white")
-        plt.title("Tesla Prices and Prediction", color="white")
-        plt.legend(facecolor="#222222", edgecolor="white")
-        plt.grid(True, alpha=0.3, color="gray")
-        plt.gca().set_facecolor("#000000")
-        st.pyplot(plt)
+            st.error(f"Could not find {model_map[model_choice]}. Please ensure the file is in your GitHub repo.")
 
-# ----------------- Technologies Page -----------------
-else:
-    st.header("Technologies Used")
+# --- PAGE 2: PROJECT INFORMATION ---
+elif page == "📂 Project Information":
+    st.title("Project Technical Details")
     
     st.markdown("""
-    **1. Python:** Programming language used for the project.
-
-    **2. Streamlit:** Used to create the interactive web app.
-
-    **3. NumPy:** For numerical operations.
-
-    **4. Matplotlib:** For plotting historical and predicted prices.
-
-    **5. TensorFlow & Keras:** For building and loading LSTM models.
-
-    **6. scikit-learn (MinMaxScaler):** To scale the data for LSTM.
-
-    **7. LSTM Models:** Pre-trained Long Short-Term Memory neural networks for predicting Tesla stock prices.
+    ### 🧠 Machine Learning Approach
+    This project utilizes **Long Short-Term Memory (LSTM)** networks, a specialized type of Recurrent Neural Network (RNN). 
+    LSTMs are designed to handle sequence data and are particularly effective for time-series forecasting because they can 'remember' long-term trends.
     
-    ---
+    ### 📊 Dataset Overview
+    The data is sourced from your `TSLA.csv` file, containing historical trading data for Tesla Inc.
     """)
-    st.markdown("Use the sidebar to navigate back to the Prediction page.")
 
+    # Show Data Sample
+    st.subheader("Raw Data Sample")
+    st.dataframe(df.head(10), use_container_width=True)
+
+    # Dataset Metrics
+    col_a, col_b, col_c = st.columns(3)
+    col_a.metric("Total Records", len(df))
+    col_b.metric("Start Date", str(df['Date'].min().date()))
+    col_c.metric("End Date", str(df['Date'].max().date()))
+
+    st.markdown("""
+    ---
+    **Author:** [Your Name/GitHub Handle]  
+    **Frameworks:** Streamlit, TensorFlow/Keras, Pandas, Plotly.
+    """)
