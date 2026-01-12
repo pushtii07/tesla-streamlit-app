@@ -7,7 +7,7 @@ import os
 st.set_page_config(page_title="Tesla Stock Prediction", layout="centered")
 st.title("📈 Tesla Stock Price Prediction")
 
-# ----------------- Load LSTM Models -----------------
+# ----------------- Load Models -----------------
 def load_lstm_model(model_name):
     model_path = os.path.join("models", model_name)
     if os.path.exists(model_path):
@@ -20,7 +20,7 @@ model_1day = load_lstm_model("lstm_1day.h5")
 model_5day = load_lstm_model("lstm_5day.h5")
 model_10day = load_lstm_model("lstm_10day.h5")
 
-# ----------------- Predefined Tesla Close Prices -----------------
+# ----------------- Hardcoded 60 Tesla Close Prices -----------------
 tesla_close_prices = np.array([
 130.5, 131.2, 132.0, 131.8, 132.5, 133.0, 134.2, 135.0,
 134.8, 135.5, 136.0, 135.8, 136.5, 137.0, 138.2, 138.5,
@@ -29,17 +29,10 @@ tesla_close_prices = np.array([
 144.5, 145.0, 145.2, 145.5, 146.0, 146.5, 147.0, 147.5,
 148.0, 148.5, 149.0, 149.5, 150.0, 150.5, 151.0, 151.5,
 152.0, 152.5, 153.0, 153.5, 154.0, 154.5, 155.0, 155.5,
-156.0, 156.5, 157.0, 157.5, 158.0, 158.5
+156.0, 156.5, 157.0, 157.5
 ])
 
-# ----------------- Pad if <60 values -----------------
-if len(tesla_close_prices) < 60:
-    pad_length = 60 - len(tesla_close_prices)
-    tesla_close_prices = np.concatenate(
-        (np.full(pad_length, tesla_close_prices[0]), tesla_close_prices)
-    )
-
-# Scale data
+# ----------------- Scale the data -----------------
 scaler = MinMaxScaler(feature_range=(0,1))
 data_scaled = scaler.fit_transform(tesla_close_prices.reshape(-1,1))
 
@@ -70,4 +63,5 @@ if st.button("Predict"):
         pred = predict_future(model_10day, data_scaled, scaler, days=10)
     
     st.success(f"🔹 Predicted Tesla Close Price for {horizon}-Day(s): ${pred:.2f}")
+
 
