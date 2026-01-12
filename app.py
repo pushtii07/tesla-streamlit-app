@@ -13,7 +13,6 @@ model_10day = load_model("models/tesla-model_10day.h5")
 # Tabs
 tab1, tab2, tab3 = st.tabs(["Prediction", "Models Info", "Technologies Used"])
 
-# --------- Tab 1: Prediction Window ----------
 with tab1:
     st.title("Price Prediction Dashboard")
 
@@ -59,7 +58,6 @@ with tab1:
     ax.set_title("Prediction Trend")
     st.pyplot(fig)
 
-# --------- Tab 2: Models Info ----------
 with tab2:
     st.title("Models Info")
     st.markdown("""
@@ -72,9 +70,8 @@ with tab2:
     **Training:** Supervised learning on historical data
     """)
 
-# --------- Tab 3: Technologies Used ----------
 with tab3:
-    st.title("Technologies & Concepts Used")
+    st.title("Technologies Used")
     st.markdown("""
     - **Libraries:** Python, Streamlit, Pandas, NumPy, Scikit-learn, TensorFlow/Keras, Matplotlib, Seaborn  
     - **Concepts:** Data preprocessing, scaling, regression/LSTM models, visualization, deployment with Streamlit
