@@ -6,13 +6,6 @@ import os
 from tensorflow.keras.models import load_model
 from sklearn.preprocessing import MinMaxScaler
 
-import gdown
-url = "https://drive.google.com/uc?id=YOUR_FILE_ID"
-output = "models/tesla_model_1day_lstm.h5"
-gdown.download(url, output, quiet=False)
-model_1day = load_model(output)
-
-
 # ----------------- Page Config -----------------
 st.set_page_config(
     page_title="Tesla Stock Prediction",
@@ -23,7 +16,7 @@ st.set_page_config(
 st.title("🚀 Tesla Stock Price Prediction (LSTM)")
 st.markdown("Predict Tesla stock prices for 1, 5, and 10 days using pre-trained LSTM models.")
 
-# ----------------- Paths -----------------
+# ----------------- Paths & Models -----------------
 MODEL_FOLDER = "models"
 MODEL_FILES = {
     "1day": "tesla_model_1day_lstm.h5",
@@ -37,7 +30,6 @@ def check_models_exist():
     for key, file in MODEL_FILES.items():
         path = os.path.join(MODEL_FOLDER, file)
         if not os.path.isfile(path):
-            st.warning(f"Looking for: {os.path.abspath(path)}")
             missing.append(file)
     return missing
 
@@ -58,9 +50,8 @@ def preprocess_data(df):
     return scaled_data, scaler
 
 def create_input_sequence(data, seq_len=60):
-    X = []
-    X.append(data[-seq_len:])
-    return np.array(X)
+    """Create a single sequence from the last 'seq_len' data points"""
+    return np.array([data[-seq_len:]])
 
 def predict_future(model, data, scaler, days):
     seq_len = 60
@@ -69,13 +60,18 @@ def predict_future(model, data, scaler, days):
     for _ in range(days):
         pred_scaled = model.predict(X_input, verbose=0)
         preds.append(pred_scaled[0,0])
+        # Append the new prediction and remove the first element to maintain sequence
         X_input = np.append(X_input[:,1:,:], [[pred_scaled[0,0]]], axis=1)
     preds_actual = scaler.inverse_transform(np.array(preds).reshape(-1,1))
     return preds_actual.flatten()
 
 # ----------------- Sidebar -----------------
 st.sidebar.header("Settings")
-uploaded_file = st.sidebar.file_uploader("Upload Tesla Stock CSV", type=["csv"], help="CSV must have 'Date' and 'Close' columns.")
+uploaded_file = st.sidebar.file_uploader(
+    "Upload Tesla Stock CSV", 
+    type=["csv"], 
+    help="CSV must have 'Date' and 'Close' columns."
+)
 
 # ----------------- Check Models -----------------
 missing_models = check_models_exist()
@@ -88,7 +84,12 @@ models = load_models()
 
 # ----------------- Main App -----------------
 if uploaded_file:
+    # Read and process data
     df = pd.read_csv(uploaded_file)
+    if 'Date' not in df.columns or 'Close' not in df.columns:
+        st.error("CSV must contain 'Date' and 'Close' columns.")
+        st.stop()
+        
     df['Date'] = pd.to_datetime(df['Date'])
     df.sort_values('Date', inplace=True)
     df.reset_index(drop=True, inplace=True)
@@ -96,6 +97,7 @@ if uploaded_file:
     st.subheader("📊 Historical Stock Prices")
     st.dataframe(df.tail(10))
 
+    # Plot historical prices
     st.subheader("📈 Closing Price Chart")
     fig, ax = plt.subplots(figsize=(10,5))
     ax.plot(df['Date'], df['Close'], color='blue', label='Close Price')
@@ -104,7 +106,7 @@ if uploaded_file:
     ax.legend()
     st.pyplot(fig)
 
-    # Preprocess
+    # Preprocess data
     scaled_data, scaler = preprocess_data(df)
 
     # Predictions
@@ -142,6 +144,7 @@ if uploaded_file:
 
 else:
     st.info("Please upload your TSLA CSV file to continue.")
+
 
 
 
