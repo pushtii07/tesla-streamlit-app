@@ -4,14 +4,15 @@ from tensorflow.keras.models import load_model
 from sklearn.preprocessing import MinMaxScaler
 import os
 
+# ----------------- Page Settings -----------------
 st.set_page_config(page_title="Tesla Stock Prediction", layout="centered")
 st.title("📈 Tesla Stock Price Prediction")
 
-# ----------------- Load Models -----------------
+# ----------------- Load LSTM Models -----------------
 def load_lstm_model(model_name):
     model_path = os.path.join("models", model_name)
     if os.path.exists(model_path):
-        return load_model(model_path, compile=False)
+        return load_model(model_path, compile=False)  # Only for prediction
     else:
         st.error(f"Model {model_name} not found!")
         return None
@@ -20,7 +21,8 @@ model_1day = load_lstm_model("lstm_1day.h5")
 model_5day = load_lstm_model("lstm_5day.h5")
 model_10day = load_lstm_model("lstm_10day.h5")
 
-# ----------------- Hardcoded 60 Tesla Close Prices -----------------
+# ----------------- Predefined Tesla Close Prices -----------------
+# Must have at least 60 values for LSTM
 tesla_close_prices = np.array([
 130.5, 131.2, 132.0, 131.8, 132.5, 133.0, 134.2, 135.0,
 134.8, 135.5, 136.0, 135.8, 136.5, 137.0, 138.2, 138.5,
@@ -32,36 +34,35 @@ tesla_close_prices = np.array([
 156.0, 156.5, 157.0, 157.5
 ])
 
-# ----------------- Scale the data -----------------
+# ----------------- Ensure at least 60 values -----------------
+if len(tesla_close_prices) < 60:
+    pad_length = 60 - len(tesla_close_prices)
+    tesla_close_prices = np.concatenate(
+        (np.full(pad_length, tesla_close_prices[0]), tesla_close_prices)
+    )
+
+# ----------------- Scale Data -----------------
 scaler = MinMaxScaler(feature_range=(0,1))
 data_scaled = scaler.fit_transform(tesla_close_prices.reshape(-1,1))
 
 # ----------------- Prediction Function -----------------
-def predict_future(model, data_scaled, scaler, days):
+def predict_future(model, data_scaled, scaler):
+    # Use last 60 values as input
     seq_length = 60
-    temp_input = list(data_scaled[-seq_length:])
-    lst_output = []
-
-    for i in range(days):
-        x_input = np.array(temp_input[-seq_length:]).reshape(1, seq_length, 1)
-        yhat = model.predict(x_input, verbose=0)
-        lst_output.append(yhat[0][0])
-        temp_input.append(yhat[0][0])
-
-    predicted = scaler.inverse_transform(np.array(lst_output).reshape(-1,1))
-    return predicted.flatten()[-1]
+    x_input = np.array(data_scaled[-seq_length:]).reshape(1, seq_length, 1)
+    yhat = model.predict(x_input, verbose=0)
+    predicted = scaler.inverse_transform(yhat.reshape(-1,1))
+    return predicted.flatten()[0]  # Single predicted value
 
 # ----------------- Streamlit UI -----------------
 horizon = st.selectbox("Select Prediction Horizon (days)", [1, 5, 10])
 
 if st.button("Predict"):
     if horizon == 1:
-        pred = predict_future(model_1day, data_scaled, scaler, days=1)
+        pred = predict_future(model_1day, data_scaled, scaler)
     elif horizon == 5:
-        pred = predict_future(model_5day, data_scaled, scaler, days=5)
+        pred = predict_future(model_5day, data_scaled, scaler)
     else:
-        pred = predict_future(model_10day, data_scaled, scaler, days=10)
+        pred = predict_future(model_10day, data_scaled, scaler)
     
     st.success(f"🔹 Predicted Tesla Close Price for {horizon}-Day(s): ${pred:.2f}")
-
-
