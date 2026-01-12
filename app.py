@@ -130,7 +130,7 @@ st.markdown(f"### Market Trend: **{trend}**")
 # --------------------------------------------------
 st.subheader("📊 Historical Prices & Prediction")
 
-plt.figure(figsize=(8,3))
+plt.figure(figsize=(12,5))
 plt.plot(df.index[-120:], prices[-120:], label="Actual Price", linewidth=2)
 plt.axhline(prediction, color="red", linestyle="--", linewidth=2, label="Predicted Price")
 plt.title(f"LSTM Model – {horizon}-Day Forecast")
@@ -175,5 +175,6 @@ Stock prices are influenced by many unpredictable factors.
 This app **must not be used for real-world trading or financial decisions**.
 """
 )
+
 
 
