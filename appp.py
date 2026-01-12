@@ -11,7 +11,8 @@ st.set_page_config(page_title="Tesla Stock Prediction", layout="wide")
 def load_lstm_model(model_name):
     model_path = os.path.join("models", model_name)
     if os.path.exists(model_path):
-        return load_model(model_path)
+        # Only load for prediction, skip compilation
+        return load_model(model_path, compile=False)
     else:
         st.error(f"Model {model_name} not found in 'models/' folder!")
         return None
@@ -85,3 +86,4 @@ if model_1day and model_5day and model_10day:
     plot_predictions(tesla_close_prices, pred_1, pred_5, pred_10)
 else:
     st.error("One or more models could not be loaded. Check 'models/' folder.")
+
