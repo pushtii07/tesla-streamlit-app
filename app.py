@@ -20,7 +20,7 @@ st.set_page_config(
 st.markdown("""
 <style>
 body {
-    background-color: #0e1117;
+    background-color: brown;
     color: white;
 }
 [data-testid="stAppViewContainer"] {
@@ -181,6 +181,7 @@ st.markdown(
     "<center>🚀 Tesla Stock Prediction Project | Deep Learning & Streamlit</center>",
     unsafe_allow_html=True
 )
+
 
 
 
