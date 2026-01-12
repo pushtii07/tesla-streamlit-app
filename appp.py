@@ -18,7 +18,7 @@ def load_lstm_model(model_name):
         return None
 
 def predict_future(model, data_scaled, scaler, days=1):
-    seq_length = 60
+    seq_length = min(60, len(data_scaled))
     temp_input = list(data_scaled[-seq_length:])
     lst_output = []
 
@@ -86,4 +86,5 @@ if model_1day and model_5day and model_10day:
     plot_predictions(tesla_close_prices, pred_1, pred_5, pred_10)
 else:
     st.error("One or more models could not be loaded. Check 'models/' folder.")
+
 
