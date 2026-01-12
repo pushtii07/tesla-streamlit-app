@@ -106,12 +106,30 @@ with tab1:
         trend = "📉 Bearish"
     else:
         trend = "➖ Sideways"
+delta_value = prediction - last_price
+delta_color = "#22c55e" if delta_value >= 0 else "#ef4444"
 
-    st.metric(
-        label=f"Predicted Price ({horizon}-Day Ahead)",
-        value=f"${prediction:,.2f}",
-        delta=f"{prediction - last_price:,.2f}"
-    )
+st.markdown(f"""
+<div style="
+    background: linear-gradient(135deg, #020617, #111827);
+    padding: 25px;
+    border-radius: 14px;
+    text-align: center;
+    margin-top: 20px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.6);
+">
+    <h3 style="color:#9ca3af; margin-bottom:10px;">
+        Predicted Price ({horizon}-Day Ahead)
+    </h3>
+    <h1 style="color:#f9fafb; font-size:52px; margin:0;">
+        ${prediction:,.2f}
+    </h1>
+    <p style="color:{delta_color}; font-size:18px; margin-top:8px;">
+        Δ {delta_value:,.2f} USD from last close
+    </p>
+</div>
+""", unsafe_allow_html=True)
+
 
     st.markdown(f"### Market Trend: **{trend}**")
 
@@ -182,6 +200,7 @@ st.markdown(
     "<center>🚀 Tesla Stock Prediction Project | Deep Learning & Streamlit</center>",
     unsafe_allow_html=True
 )
+
 
 
 
